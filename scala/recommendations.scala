@@ -17,15 +17,6 @@ package org.pii.collective.recommend{
       if(!prefs(person1).exists(p1 => prefs(person2).exists(p2 => p1._1 == p2._1)))
         return 0
 
-      /*
-      val squares = for{
-        p1 <- prefs(person1)
-        if(prefs(person2).exists(p2 => p1._1 == p2._1))
-      } yield {
-        pow(prefs(person1)(p1._1) - prefs(person2)(p1._1), 2)
-      }
-      val sum_of_squares: Double = squares.sum
-      */
       val sum_of_squares = prefs(person1).filter(p1 => 
           prefs(person2).exists(p2 => p1._1 == p2._1)).map(p1 =>
             pow(prefs(person1)(p1._1) - prefs(person2)(p1._1), 2)).sum
@@ -60,5 +51,12 @@ package org.pii.collective.recommend{
       //return
       num / den
     }
+
+    def topMatches(prefs:Map[String, Map[String,Double]], person: String, n: Int = 5,
+      similarity:(Map[String, Map[String,Double]], String, String) => Double = Recommendation.sim_pearson
+      ): List[(Double, String)] = {
+        prefs.filter(other => other._1 != person).map(other =>
+            (similarity(prefs, person, other._1), other._1)).toList.sort(_._1 > _._1).take(n)
+      }
   }
 }

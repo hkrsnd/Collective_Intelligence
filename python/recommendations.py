@@ -43,13 +43,13 @@ def sim_pearson(prefs, p1, p2):
     sum2 = sum([prefs[p2][it] for it in si])
 
     sum1Sq = sum([pow(prefs[p1][it], 2) for it in si])
-    sum2Sq = sum([pow(prefs[p1][it], 2) for it in si])
+    sum2Sq = sum([pow(prefs[p2][it], 2) for it in si])
 
     pSum = sum([prefs[p1][it] * prefs[p2][it] for it in si])
 
     #pearson score
     num = pSum - (sum1 * sum2 / n)
-    den = sqrt((sum1S1 - pow(sum1,2) / n) * (sum2Sq - pow(sum2,2) / n))
+    den = sqrt((sum1Sq - pow(sum1,2) / n) * (sum2Sq - pow(sum2,2) / n))
     if den == 0:
         return 0
 
@@ -61,3 +61,32 @@ def topMatches(prefs, person, n=5, similarity=sim_pearson):
     scores.sort()
     scores.reverse()
     return scores[0:n]
+
+# create recommendation
+def getRecommendations(prefs, person, similarity=sim_pearson):
+    totals = {}
+    simSums = {}
+    for other in prefs:
+        if other == person:
+            continue
+        sim = similarity(prefs, person, other)
+
+        if sim <= 0:
+            continue
+
+        # weighted score
+        for item in prefs[other]:
+            # scores of movies haven't been seen
+            if item not in prefs[person] or prefs[person][item] == 0:
+                # similarity * score
+                totals.setdefault(item, 0)
+                totals[item] += prefs[other][item] * sim
+                # similarity
+                simSums.setdefault(item, 0)
+                simSums[item] += sim
+
+    rankings = [(total / simSums[item], item) for item, total in totals.items()]
+
+    rankings.sort()
+    rankings.reverse()
+    return rankings
