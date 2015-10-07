@@ -58,5 +58,31 @@ package org.pii.collective.recommend{
         prefs.filter(other => other._1 != person).map(other =>
             (similarity(prefs, person, other._1), other._1)).toList.sort(_._1 > _._1).take(n)
       }
+
+    def getRecommendations(prefs: Map[String, Map[String, Double]], person: String, similarity: (Map[String, Map[String, Double]], String, String) => Double = Recommendation.sim_pearson): List[(Double, String)] = {
+      val other_sims = prefs.filter(other => other._1 != person).map(other =>
+          (other, similarity(prefs, person, other._1)))
+
+      import scala.collection.mutable
+      //initialize
+      val totals = mutable.Map.empty[String, Double]
+      val simSums = mutable.Map.empty[String, Double]
+
+      for((other, sim) <- other_sims;if(0 < sim)){
+        for(item <- other._2; if(!prefs(person).contains(item._1) || prefs(person)(item._1) == 0))
+             yield {
+               //weighted score
+               //initialize
+               if(!totals.isDefinedAt(item._1)) totals(item._1) = 0
+               // socore * similarity
+               totals(item._1) += item._2 * sim
+
+               if(!simSums.isDefinedAt(item._1)) simSums(item._1) = 0
+
+               simSums(item._1) += sim
+             }
+      }
+      totals.map(total => (total._2 / simSums(total._1), total._1)).toList.sort(_._1 > _._1)
+    }
   }
 }
