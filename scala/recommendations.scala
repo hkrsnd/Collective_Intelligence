@@ -56,7 +56,7 @@ package org.pii.collective.recommend{
       similarity:(Map[String, Map[String,Double]], String, String) => Double = Recommendation.sim_pearson
       ): List[(Double, String)] = {
         prefs.filter(other => other._1 != person).map(other =>
-            (similarity(prefs, person, other._1), other._1)).toList.sort(_._1 > _._1).take(n)
+            (similarity(prefs, person, other._1), other._1)).toList.sortWith(_._1 > _._1).take(n)
       }
 
     def getRecommendations(prefs: Map[String, Map[String, Double]], person: String, similarity: (Map[String, Map[String, Double]], String, String) => Double = Recommendation.sim_pearson): List[(Double, String)] = {
@@ -78,11 +78,23 @@ package org.pii.collective.recommend{
                totals(item._1) += item._2 * sim
 
                if(!simSums.isDefinedAt(item._1)) simSums(item._1) = 0
-
                simSums(item._1) += sim
              }
       }
-      totals.map(total => (total._2 / simSums(total._1), total._1)).toList.sort(_._1 > _._1)
+      totals.map(total => (total._2 / simSums(total._1), total._1)).toList.sortWith(_._1 > _._1)
+    }
+
+    def transformPrefs(prefs: Map[String, Map[String, Double]]): Map[String, Map[String, Double]] = {
+      import scala.collection.mutable
+      val result = mutable.Map.empty[String, mutable.Map[String, Double]]
+
+      for(person <- prefs){
+        for(item <- person._2){
+          if(!result.isDefinedAt(item._1)) result(item._1) = mutable.Map.empty[String, Double]
+          result(item._1)(person._1) = item._2
+        }
+      }
+      result.map(x => (x._1, x._2.toMap)).toMap
     }
   }
 }
