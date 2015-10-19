@@ -50,7 +50,7 @@ def hcluster(rows, distance = pearson):
         lowestpair = (0, 1)
         closest = distance(clust[0].vec, clust[1].vec)
 
-        # find the most closest pair
+        # find the closest pair
         for i in range(len(clust)):
             for j in range(i+1, len(clust)):
                 # reuse the distance data if it's cahsed
@@ -77,3 +77,18 @@ def hcluster(rows, distance = pearson):
         clust.append(newcluster)
 
     return clust[0]
+
+def printclust(clust, labels = None, n = 0):
+    # indent
+    for i in range(n): print ' ',
+    if clust.id < 0:
+        # negative id means it is edge
+        print '_'
+    else:
+        # positive id means it is terminal
+        if labels == None: print clust.id
+        else: print labels[clust.id]
+        
+    # print edges
+    if clust.left != None: printclust(clust.left, labels = labels, n = n + 1)
+    if clust.right != None: printclust(clust.right, labels = labels, n = n + 1)
