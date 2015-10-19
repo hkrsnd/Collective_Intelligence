@@ -1,5 +1,6 @@
 import scala.io.Source
 import scala.xml.{XML, NodeSeq}
+import scala.math._
 
 package org.pii.collective.cluster {
   object Cluster {
@@ -22,6 +23,16 @@ package org.pii.collective.cluster {
 
       val (rownames, data) = counting(lines.tail)
       (rownames, colnames, data)
+    }
+
+    def pearson(v1: List[Int], v2: List[Int]): Double = {
+      sum1 = v1.sum
+      sum2 = v2.sum
+
+      sum1Sq = v1.map(x => x.pow(2)).sum
+      sum2Sq = v2.map(x => x.pow(2)).sum
+
+      pSum = v1.map(x => v2.map(y => ))
     }
   }
 }
