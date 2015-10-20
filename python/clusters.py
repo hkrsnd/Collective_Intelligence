@@ -1,4 +1,5 @@
 from math import sqrt
+from PIL import Image, ImageDraw
 
 class bicluster:
     def __init__(self, vec, left = None, right = None, distance = 0.0, id = None):
@@ -80,7 +81,8 @@ def hcluster(rows, distance = pearson):
 
 def printclust(clust, labels = None, n = 0):
     # indent
-    for i in range(n): print ' ',
+    for i in range(n):
+        print " ",
     if clust.id < 0:
         # negative id means it is edge
         print '_'
@@ -92,3 +94,29 @@ def printclust(clust, labels = None, n = 0):
     # print edges
     if clust.left != None: printclust(clust.left, labels = labels, n = n + 1)
     if clust.right != None: printclust(clust.right, labels = labels, n = n + 1)
+
+def getheight(clust):
+    if clust.left == None and clust.right == None:
+        return 1
+    return getheight(clust.left) + getheight(clust.right)
+
+def getdepth(clust):
+    if clust.left == None and clust.right == None:
+        return 0
+    return max(getdepth(clust.left), getdepth(clust.right)) + clust.distance
+
+def drawdendrogram(clust, labels, jpeg = 'cluster.jpg'):
+    # height
+    h = getheight(clust) * 20
+    # width
+    w = 1200
+    depth = getdepth(clust)
+
+    scaling = float(w - 150) / depth
+
+    img = Image.new('RGB', (w, h), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    draw.line((0, h/2, 10, h/2), fill = (255, 0, 0))
+
+    drawnode(draw, clust, 10, (h/2), scaling, labels)
+    img.save(jpeg, 'JPEG')

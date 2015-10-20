@@ -2,6 +2,14 @@ import scala.io.Source
 import scala.xml.{XML, NodeSeq}
 import scala.math._
 
+import java.awt.Image
+import java.awt.image.BufferedImage
+import java.awt.Graphics2D
+import javax.imageio.ImageIO
+import java.awt.Color
+import java.awt.geom._
+import java.io.File
+
 package org.pii.collective.cluster {
   class Cluster(
     val vec: List[Double],
@@ -83,6 +91,67 @@ package org.pii.collective.cluster {
       }
       if(clust.left != None) printclust(clust.left.get, labels = labels, n = n + 1)
       if(clust.right != None) printclust(clust.right.get, labels = labels, n = n + 1)
+    }
+    
+    def getheight(clust: Cluster): Double = {
+      clust match {
+        case clust if clust.left == None && clust.right == None =>
+          1
+        case clust =>
+          getheight(clust.left.get) + getheight(clust.right.get)
+      }
+    }
+
+     def drawdendrogram(clust:Cluster, labels:Option[List[String]],                
+    jpeg:String="cluster.jpg"):Unit = {
+    // 背景作成のための高さと幅を定義
+    val h = getheight(clust) * 20
+    val w = 1200
+    // クラスタの深さを取得して縮尺を定義
+    val depth = getdepth(clust)
+    val scaling = (w - 150) / depth
+                
+    // 描画用のオブジェクトを作成
+    val im = new BufferedImage(w.toInt, h.toInt, BufferedImage.TYPE_INT_RGB)
+    var g = im.createGraphics()
+    // 背景を描画
+    g.setPaint(Color.white)
+    g.fill(new Rectangle2D.Double(0, 0, w, h))
+    g.drawImage(im, null, 0, 0)
+                
+    // ノードの描画を開始
+    g = drawnode(g, clust, 10, (h / 2).toInt, scaling, labels)
+                
+    // ファイルに書き出し
+    try {       
+      ImageIO.write(im, "jpeg", new File(jpeg))
+    }catch {    
+      case e:Exception => println("image write error")
+    }           
+  }
+
+    def drawnode(draw: Graphics2D, clust: Cluster, x: Int, y: Int, scaling: Double, labels: Option[List[String]]): Graphics2D = {
+      if(clust.id.get < 0){
+        val h1 = getheight(clust.left.get) * 20
+        val h2 = getheight(clust.right.get) * 20
+        val top = y - (h1 + h2) / 2
+        val bottom = y + (h1 + h2) / 2
+
+        val ll = clust.distance * scaling
+
+        draw.setPaint(Color.red)
+        draw.draw(new Line2D.Double(x, top + h1 / 2, x, bottom - h2 / 2))
+        draw.draw(new Line2D.Double(x, bottom - h2 / 2, x + ll, bottom - h2 / 2))
+        draw.draw(new Line2D.Double(x, top + h1 / 2, x + ll, top + h1 / 2))
+
+        drawnode(draw, clust.left.get, (x + ll).toInt, (top + h1 / 2).toInt, scaling, labels)
+        drawnode(draw, clust.right.get, (x + ll).toInt, (top - h2 / 2).toInt, scaling, labels)
+      } else {
+        val label = if (labels != None) labels.get(clust.id.get) else clust.id.get.toString
+        draw.setPaint(Color.black)
+        draw.drawString(label, x, y)
+      }
+      return draw
     }
   }
 }
