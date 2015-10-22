@@ -1,6 +1,7 @@
 import scala.io.Source
-import scala.xml.{XML, NodeSeq}
 import scala.math._
+import scala.util.Random
+import scala.xml.{XML, NodeSeq}
 
 import java.awt.Image
 import java.awt.image.BufferedImage
@@ -152,6 +153,15 @@ package org.pii.collective.cluster {
         draw.drawString(label, x, y)
       }
       return draw
+    }
+
+    def scaledown(data: List[List[Double]], distance: (List[Double], List[Double]) => Double = pearson, rate: Double = 0.01): (List[Double], List[Double]) = {
+      val n = data.size
+      val realdist = data.combinations(2).map(x =>
+          distance(x(0), x(1))).toList
+      // create random location
+      val loc = (List.fill(n)(Random.nextInt(n)), List.fill(n)(Random.nextInt(n))).toList.zip
+      loc
     }
   }
 }
