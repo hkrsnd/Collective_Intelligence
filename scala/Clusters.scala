@@ -103,7 +103,7 @@ package org.pii.collective.cluster {
       }
     }
 
-     def drawdendrogram(clust:Cluster, labels:Option[List[String]],                
+    def drawdendrogram(clust:Cluster, labels:Option[List[String]],                
     jpeg:String="cluster.jpg"):Unit = {
     // 背景作成のための高さと幅を定義
     val h = getheight(clust) * 20
@@ -155,13 +155,25 @@ package org.pii.collective.cluster {
       return draw
     }
 
-    def scaledown(data: List[List[Double]], distance: (List[Double], List[Double]) => Double = pearson, rate: Double = 0.01): (List[Double], List[Double]) = {
+    def scaledown(data: List[List[Double]], distance: (List[Double], List[Double]) => Double = pearson, rate: Double = 1.01): (List[Double], List[Double]) = {
       val n = data.size
       val realdist = data.combinations(2).map(x =>
           distance(x(0), x(1))).toList
       // create random location
-      val loc = (List.fill(n)(Random.nextInt(n)), List.fill(n)(Random.nextInt(n))).toList.zip
-      loc
+      val loc = List.fill(n)(Random.nextDouble()) zip List.fill(n)(Random.nextDouble())
+      // phisical distance between each random points
+      val fakedist = loc.combinations(2).map(x =>
+          sqrt((pow((x(0)._1 - x(1)._1), 2) + pow((x(0)._2 - x(1)._2), 2)))).toList
+      var totalerror = 0.0
+      val grad = for (com <- loc.combinations(2); fd <- fakedist; rd <- realdist) yield {
+        val errorterm = (fd - rd) / rd
+        totalerror = totalerror + abs(errorterm)
+        (((com(1)._1 - com(2)._1) / fd) * errorterm, ((com(1)._2 - com(2)._2) / fd) * errorterm, totalerror)
+      }
+      val fixed_loc = for (gr <- grad, lc <- loc) yield {
+        // TODO if lasterror < totalerror
+        (loc._1 - rate * gr._1, loc._2 - rate * gr._2)
+      }
     }
   }
 }
