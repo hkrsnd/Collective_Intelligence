@@ -1,14 +1,12 @@
 package org.pii5656.collective.searchengine
-import scala.io.Source
-import scala.xml.XML
-
 import java.io.StringReader
-import scala.xml.Node
-import scala.xml.parsing.NoBindingFactoryAdapter
 import nu.validator.htmlparser.{sax,common}
 import sax.HtmlParser
 import common.XmlViolationPolicy
 import org.xml.sax.InputSource
+import scala.io.Source
+import scala.xml.{Node,XML}
+import scala.xml.parsing.NoBindingFactoryAdapter
 
 object Crawler {
   def toNode(str: String): Node = {
@@ -20,7 +18,7 @@ object Crawler {
     saxer.rootElem
   }
   def addToIndex(page: String): Unit = println(page)
-  def addLinkRef(page: String, link: String, linkText: String): Unit = {println(link)}
+  def addLinkRef(page: String, link: String, linkText: String): Unit = println(link)
   def getTextOnly(link: String): String = link
   def isIndexed(page: String): Boolean = false
   def crawl(pages: List[String], depth: Int = 1): Unit = {
@@ -35,9 +33,10 @@ object Crawler {
         val feeds = toNode(source.mkString)
         //source.close
         addToIndex(page)
-        // search <a> in URL
-        val links = (feeds \\ "a").map(x => x.text)
-        // val links = (feeds \\ "@href").text
+        // search <a href="http://..."> in URL
+        // get "http://..."
+        val links = (feeds \\ "@href").map(x =>
+            x.mkString).filter(x => x.startsWith("http"))
         for (link <- links) {
           if (!isIndexed(link))
             newpages += link
