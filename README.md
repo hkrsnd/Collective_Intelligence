@@ -1,1 +1,1 @@
-# Collective_Intlligence
+# Collective_Intelligence
