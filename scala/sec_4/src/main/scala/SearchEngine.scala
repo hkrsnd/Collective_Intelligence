@@ -4,7 +4,8 @@ import nu.validator.htmlparser.{sax,common}
 import sax.HtmlParser
 import common.XmlViolationPolicy
 import org.xml.sax.InputSource
-import scala.io.Source
+import scala.io.{Source, BufferedSource}
+import scala.sys
 import scala.xml.{Node,XML}
 import scala.xml.parsing.NoBindingFactoryAdapter
 
@@ -17,20 +18,29 @@ object Crawler {
     hp.parse(new InputSource(new StringReader(str)))
     saxer.rootElem
   }
-  def addToIndex(page: String): Unit = println(page)
-  def addLinkRef(page: String, link: String, linkText: String): Unit = println(link)
-  def getTextOnly(link: String): String = link
+  def addToIndex(page: String): Unit = println("Indexing " + page)
+  def addLinkRef(page: String, url: String, linkText: String): Unit = {}
+  def getTextOnly(url: String): String = url
   def isIndexed(page: String): Boolean = false
-  def crawl(pages: List[String], depth: Int = 1): Unit = {
-    for (i <- 1 to depth) {
-      // initialize newpages
-      var newpages = Set("")
-      // for each URL
-      for (page <- pages) {
+
+  def crawl(pages: List[String], depth: Int): Unit = {
+    if (depth == 0) sys.exit(0)
+    // initialize variables
+    var source: BufferedSource = null
+    var feeds: scala.xml.Node = null
+    var newpages = Set("")
+    // try to get contents from each URL
+    for (page <- pages) {
+      try{
         // get URL contents
-        val source = Source.fromURL(page)
-        //val feeds = XML.loadString(source.getLines.mkString)
-        val feeds = toNode(source.mkString)
+        source = Source.fromURL(page)
+        feeds = toNode(source.mkString)
+        } catch {
+          case e: Exception => println("Could not open " + page)
+          case e: org.xml.sax.SAXParseException => println("Could not open " + page)
+        }
+    
+      if(source != null && feeds != null){
         //source.close
         addToIndex(page)
         // search <a href="http://..."> in URL
@@ -38,13 +48,15 @@ object Crawler {
         val links = (feeds \\ "@href").map(x =>
             x.mkString).filter(x => x.startsWith("http"))
         for (link <- links) {
-          if (!isIndexed(link))
-            newpages += link
-          val linkText = getTextOnly(link)
-          addLinkRef(page, link, linkText)
+          val url = link.split("#")(0) // remove anchor
+          if (!isIndexed(url))
+            newpages += url
+          val linkText = getTextOnly(url)
+          addLinkRef(page, url, linkText)
         }
-        source.close
+        // source.close
+        }
       }
-    }
+      crawl(newpages.toList, depth-1)
   }
 }
