@@ -6,5 +6,7 @@ scalaVersion := "2.11.7"
 
 libraryDependencies ++= Seq(
   "nu.validator.htmlparser" % "htmlparser" % "1.4",
-  "org.scala-lang.modules" %% "scala-xml" % "1.0.2"
+  "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
+  "com.typesafe.slick" %% "slick" % "3.0.0",
+  "org.slf4j" % "slf4j-nop" % "1.6.4"
 )
