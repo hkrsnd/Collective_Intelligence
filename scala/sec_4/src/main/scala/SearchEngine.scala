@@ -5,6 +5,12 @@ import sax.HtmlParser
 import common.XmlViolationPolicy
 import org.xml.sax.InputSource
 import scala.io.{Source, BufferedSource}
+import scala.slick.driver.SQLiteDriver.api._
+import slick.lifted.TableQuery
+import slick.jdbc.JdbcBackend.Database;
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent._
+import ExecutionContext.Implicits.global
 import scala.sys
 import scala.xml.{Node,XML}
 import scala.xml.parsing.NoBindingFactoryAdapter
@@ -18,9 +24,12 @@ object Crawler {
     hp.parse(new InputSource(new StringReader(str)))
     saxer.rootElem
   }
+  def getEntryId(table: String, field: String, value: String, createNew: Boolean = true): Int = {
+    0
+  }
+  def getTextOnly(url: String): String = url
   def addToIndex(page: String): Unit = println("Indexing " + page)
   def addLinkRef(page: String, url: String, linkText: String): Unit = {}
-  def getTextOnly(url: String): String = url
   def isIndexed(page: String): Boolean = false
 
   def crawl(pages: List[String], depth: Int): Unit = {
@@ -59,4 +68,42 @@ object Crawler {
       }
       crawl(newpages.toList, depth-1)
   }
-}
+  object DB {
+    val db = Database.forURL("jdbc:sqlite:searchindex", driver = "org.sqlite.JDBC")
+    class Link(tag: Tag) extends Table[(Int, Int, Int)](tag, "link") {
+      def id = column[Int]("rowid", O.PrimaryKey)
+      def fromid = column[Int]("fromid")
+      def toid = column[Int]("toid")
+      def * = (id, fromid, toid)
+    }
+    val links = TableQuery[Link]
+    class LinkWords(tag: Tag) extends Table[(Int, Int)](tag, "linkwords") {
+      def wordid = column[Int]("wordid")
+      def linkid = column[Int]("linkid")
+      def * = (wordid, linkid)
+    }
+    val linkwords = TableQuery[LinkWords]
+    class WordList(tag: Tag) extends Table[(Int, String)](tag, "wordlist") {
+      def rowid = column[Int]("rowid")
+      def word = column[String]("word")
+      def * = (rowid, word)
+    }
+    val wordlist = TableQuery[WordList]
+    class UrlList(tag: Tag) extends Table[(Int, String)](tag, "urllist") {
+      def rowid = column[Int]("rowid")
+      def url = column[String]("url")
+      def * = (rowid, url)
+    }
+    val urllist = TableQuery[UrlList]
+    class WordLocation(tag: Tag) extends Table[(Int, Int, Int)](tag, "wordlocation") {
+      def urlid = column[Int]("urlid")
+      def wordid = column[Int]("wordid")
+      def location = column[Int]("location")
+      def * = (urlid, wordid, location)
+    }
+    val wordlocation = TableQuery[WordLocation]
+
+    def createIndexTables(): Unit = {
+
+    }
+  }
