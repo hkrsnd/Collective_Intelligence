@@ -63,47 +63,56 @@ object Crawler {
           val linkText = getTextOnly(url)
           addLinkRef(page, url, linkText)
         }
-        // source.close
-        }
       }
-      crawl(newpages.toList, depth-1)
+    }
+    crawl(newpages.toList, depth-1)
   }
-  object DB {
-    val db = Database.forURL("jdbc:sqlite:searchindex", driver = "org.sqlite.JDBC")
-    class Link(tag: Tag) extends Table[(Int, Int, Int)](tag, "link") {
-      def id = column[Int]("rowid", O.PrimaryKey)
-      def fromid = column[Int]("fromid")
-      def toid = column[Int]("toid")
-      def * = (id, fromid, toid)
-    }
-    val links = TableQuery[Link]
-    class LinkWords(tag: Tag) extends Table[(Int, Int)](tag, "linkwords") {
-      def wordid = column[Int]("wordid")
-      def linkid = column[Int]("linkid")
-      def * = (wordid, linkid)
-    }
-    val linkwords = TableQuery[LinkWords]
-    class WordList(tag: Tag) extends Table[(Int, String)](tag, "wordlist") {
-      def rowid = column[Int]("rowid")
-      def word = column[String]("word")
-      def * = (rowid, word)
-    }
-    val wordlist = TableQuery[WordList]
-    class UrlList(tag: Tag) extends Table[(Int, String)](tag, "urllist") {
-      def rowid = column[Int]("rowid")
-      def url = column[String]("url")
-      def * = (rowid, url)
-    }
-    val urllist = TableQuery[UrlList]
-    class WordLocation(tag: Tag) extends Table[(Int, Int, Int)](tag, "wordlocation") {
-      def urlid = column[Int]("urlid")
-      def wordid = column[Int]("wordid")
-      def location = column[Int]("location")
-      def * = (urlid, wordid, location)
-    }
-    val wordlocation = TableQuery[WordLocation]
-
-    def createIndexTables(): Unit = {
-
-    }
+}
+object DB {
+  val db = Database.forURL("jdbc:sqlite:searchindex", driver = "org.sqlite.JDBC")
+  class Link(tag: Tag) extends Table[(Int, Int, Int)](tag, "link") {
+    def id = column[Int]("rowid", O.PrimaryKey)
+    def fromid = column[Int]("fromid")
+    def toid = column[Int]("toid")
+    def * = (id, fromid, toid)
   }
+  val links = TableQuery[Link]
+  class LinkWords(tag: Tag) extends Table[(Int, Int)](tag, "linkwords") {
+    def wordid = column[Int]("wordid")
+    def linkid = column[Int]("linkid")
+    def * = (wordid, linkid)
+  }
+  val linkwords = TableQuery[LinkWords]
+  class WordList(tag: Tag) extends Table[(Int, String)](tag, "wordlist") {
+    def rowid = column[Int]("rowid")
+    def word = column[String]("word")
+    def * = (rowid, word)
+  }
+  val wordlist = TableQuery[WordList]
+  class UrlList(tag: Tag) extends Table[(Int, String)](tag, "urllist") {
+    def rowid = column[Int]("rowid")
+    def url = column[String]("url")
+    def * = (rowid, url)
+  }
+  val urllist = TableQuery[UrlList]
+  class WordLocation(tag: Tag) extends Table[(Int, Int, Int)](tag, "wordlocation") {
+    def urlid = column[Int]("urlid")
+    def wordid = column[Int]("wordid")
+    def location = column[Int]("location")
+    def * = (urlid, wordid, location)
+  }
+  val wordlocation = TableQuery[WordLocation]
+
+  def createIndexTables(db: Database): Future[Int] = {
+    db.run(sqlu"""create table urllist(url)""")
+    db.run(sqlu"""create table wordlist(word)""")
+    db.run(sqlu"""create table wordlocation(urlid, wordid, location)""")
+    db.run(sqlu"""create table link(fromid integer, toid integer)""")
+    db.run(sqlu"""create table linkwords(wordid, linkid)""")
+    db.run(sqlu"""create index wordidx on wordlist(word)""")
+    db.run(sqlu"""create index urlidx on urllist(url)""")
+    db.run(sqlu"""create index wordurlidx on wordlocation(wordid)""")
+    db.run(sqlu"""create index urltoidx on link(toid)""")
+    db.run(sqlu"""create index urlfromid on link(fromid)""")
+  }
+}
