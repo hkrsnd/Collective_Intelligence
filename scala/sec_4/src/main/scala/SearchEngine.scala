@@ -24,10 +24,17 @@ object Crawler {
     hp.parse(new InputSource(new StringReader(str)))
     saxer.rootElem
   }
+  // return long string list contains all text of the page
+  def getTextOnly(feeds: Node): List[String] = {
+    val resulttext = for (feed <- feeds) yield {
+      feed.text + "\n"
+    }
+    resulttext.toList
+  }
+  def separateWords(text: )
   def getEntryId(table: String, field: String, value: String, createNew: Boolean = true): Int = {
     0
   }
-  def getTextOnly(url: String): String = url
   def addToIndex(page: String): Unit = println("Indexing " + page)
   def addLinkRef(page: String, url: String, linkText: String): Unit = {}
   def isIndexed(page: String): Boolean = false
