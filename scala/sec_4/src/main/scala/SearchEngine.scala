@@ -10,10 +10,10 @@ import slick.lifted.TableQuery
 import slick.jdbc.JdbcBackend.Database;
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
-import ExecutionContext.Implicits.global
 import scala.sys
 import scala.xml.{Node,XML}
 import scala.xml.parsing.NoBindingFactoryAdapter
+import org.pii5656.collective.searchengine.DB._
 
 object Crawler {
   def toNode(str: String): Node = {
@@ -25,19 +25,41 @@ object Crawler {
     saxer.rootElem
   }
   // return long string list contains all text of the page
-  def getTextOnly(feeds: Node): List[String] = {
+  // ALL TEXT OF THE PAGE
+  def getTextOnly(feeds: Node): String = {
     val resulttext = for (feed <- feeds) yield {
       feed.text + "\n"
     }
-    resulttext.toList
+    (resulttext.toList :\ "")(_ + _)
   }
-  def separateWords(text: )
+  def separateWords(text: String): List[String] = {
+    text.split("^[a-zA-Z]").toList
+  }
   def getEntryId(table: String, field: String, value: String, createNew: Boolean = true): Int = {
     0
   }
+  def isIndexed(url: String): Boolean = {
+    /*
+    val u = db.run(DB.urllist.filter(_.url === url).result.head)
+    if (u != None) {
+      // val v = db.run(DB.wordlocation.filter(_.urlid === u.rowid._1).result.head)
+      u.onSuccess { case uu =>
+        val v = db.run(DB.wordlocation.filter(_.urlid === uu._1).result.head)
+        if (v != None) return true
+      }
+    }
+    */
+    val f = for {
+     u <- db.run(DB.urllist.filter(_.url === url).result.head)
+     v <- db.run(DB.wordlocation.filter(_.urlid === u._1).result.head)
+    } yield v
+    f.onSuccess { case ff =>
+      return true
+    }
+    return false
+  }
   def addToIndex(page: String): Unit = println("Indexing " + page)
   def addLinkRef(page: String, url: String, linkText: String): Unit = {}
-  def isIndexed(page: String): Boolean = false
 
   def crawl(pages: List[String], depth: Int): Unit = {
     if (depth == 0) sys.exit(0)
@@ -64,10 +86,10 @@ object Crawler {
         val links = (feeds \\ "@href").map(x =>
             x.mkString).filter(x => x.startsWith("http"))
         for (link <- links) {
-          val url = link.split("#")(0) // remove anchor
+          val url = link.toString.split("#")(0) // remove anchor
           if (!isIndexed(url))
             newpages += url
-          val linkText = getTextOnly(url)
+          val linkText = getTextOnly(feeds)
           addLinkRef(page, url, linkText)
         }
       }
@@ -84,24 +106,28 @@ object DB {
     def * = (id, fromid, toid)
   }
   val links = TableQuery[Link]
+
   class LinkWords(tag: Tag) extends Table[(Int, Int)](tag, "linkwords") {
     def wordid = column[Int]("wordid")
     def linkid = column[Int]("linkid")
     def * = (wordid, linkid)
   }
   val linkwords = TableQuery[LinkWords]
+
   class WordList(tag: Tag) extends Table[(Int, String)](tag, "wordlist") {
     def rowid = column[Int]("rowid")
     def word = column[String]("word")
     def * = (rowid, word)
   }
   val wordlist = TableQuery[WordList]
+
   class UrlList(tag: Tag) extends Table[(Int, String)](tag, "urllist") {
     def rowid = column[Int]("rowid")
     def url = column[String]("url")
     def * = (rowid, url)
   }
   val urllist = TableQuery[UrlList]
+
   class WordLocation(tag: Tag) extends Table[(Int, Int, Int)](tag, "wordlocation") {
     def urlid = column[Int]("urlid")
     def wordid = column[Int]("wordid")
