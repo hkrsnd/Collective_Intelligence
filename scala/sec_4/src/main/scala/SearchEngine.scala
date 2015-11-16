@@ -7,6 +7,7 @@ import org.xml.sax.InputSource
 import scala.io.{Source, BufferedSource}
 import scala.slick.driver.SQLiteDriver.api._
 import slick.lifted.TableQuery
+import slick.jdbc.GetResult
 import slick.jdbc.JdbcBackend.Database;
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
@@ -151,54 +152,45 @@ object Crawler {
 }
 
 object Searcher {
-  def getMatchRows(query: String): (List[Int], List[Int]) = {
-    /*
-    def buildQuery(
-      fieldlist: String, tablelist: String, clauselist: String, wordids: List[Int], tablenumber: Int
-    ): String = {
-        val words = query.split(" ")
-        for (word <- words) {
-          val wordrow = db.run(sql"select rowid from wordlist where word = #$word".as[Int].headOption)
-          wordrow.onSuccess {
-            case Some(id) if (id != null) => 
-              val wordid = wordrow.get
-              wordids += wordid
-          }
-          tablenumber match {
-            case num > 0 =>
-
-          }
-        }
-    }*/
+  def getMatchRows(query: String): (Vector[(Int, Int, Int, Int)], List[Int]) = {
    var fieldlist = "w0.urlid"
-   var tablelist = ""
-   var clauselist = ""
+   var tablelist: String = ""
+   var clauselist: String = ""
    var wordids: List[Int] = List()
 
    val words = query.split(" ")
    var tablenumber = 0
 
+   implicit val getResult: GetResult[Int] = GetResult(r => r match {
+     case a::as => a::getResult(as)
+     case _ => Nil
+   })
    for (word <- words) {
-     val wordrow = db.run(sql"select rowid from wordlist where word = #$word".as[Int].headOption)
+     val wordrow = DB.db.run(sql"select rowid from wordlist where word = '#$word'".as[List[Int]].headOption)
      wordrow.onSuccess {
        case Some(wordrow) if wordrow != null =>
+         print("wordrow: ")
+         println(wordrow)
          val wordid = wordrow
-         wordids += wordid
+         wordids = wordids :+ wordid
          if (tablenumber > 0) {
            tablelist += ","
-           clauselist += " and"
+           clauselist += " and "
            clauselist += s"w${tablenumber-1}.urlid = w${tablenumber}.urlid and "
          }
-         fieldlist += s",w${tablenumber}.location"
+         fieldlist += s" ,w${tablenumber}.location"
          tablelist += s"wordlocation w${tablenumber}"
          clauselist += s"w${tablenumber}.wordid = ${wordid.toString}"
-         tablenumber += 1
+         tablenumber = tablenumber + 1
      }
+   Await.result(wordrow, Duration.Inf)
    }
-   val cur = db.run(sqlu"select #$fieldlist from #$tablelist where #$clauselist")
+   println(fieldlist)
+   println(tablelist)
+   println(clauselist)
+   val cur = DB.db.run(sql"select #$fieldlist from #$tablelist where #$clauselist".as[List[Int]])
    cur.onSuccess {
-     case c =>
-       c
+     case a => a
    }
    (Await.result(cur, Duration.Inf), wordids)
   }
